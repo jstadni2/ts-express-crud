@@ -1,0 +1,51 @@
+<%- include('partials/header') %>
+
+<section>
+  <h2>System Detail</h2>
+
+  <dl>
+    <dt>System Name</dt>
+    <dd><%= system.name %></dd>
+
+    <dt>System Type</dt>
+    <dd><%= system.systemType %></dd>
+
+    <dt>Description</dt>
+    <dd><%= system.description || '—' %></dd>
+
+    <dt>Installation Date</dt>
+    <dd><%= system.installationDate || '—' %></dd>
+
+    <dt>Warranty Expiry Date</dt>
+    <dd><%= system.warrantyExpiryDate || '—' %></dd>
+
+    <dt>Installer Organization</dt>
+    <dd><%= system.installerOrganization ? system.installerOrganization.name : '—' %></dd>
+
+    <dt>Equipment Condition</dt>
+    <dd><%= system.equipmentCondition || '—' %></dd>
+
+    <dt>Status</dt>
+    <dd><%= system.status || '—' %></dd>
+
+    <dt>Site</dt>
+    <dd><%= system.site.siteName %> (<%= system.site.buildingCode %>)</dd>
+
+    <dt>Responsible Organization</dt>
+    <dd><%= system.responsibleOrganization ? system.responsibleOrganization.name : '—' %></dd>
+
+    <dt>System Contacts</dt>
+    <dd>
+      <%
+      const contacts = system.contacts && system.contacts.length
+        ? system.contacts.map(function (c) { return c.firstName + ' ' + c.lastName; }).join(', ')
+        : '—';
+      %>
+      <%= contacts %>
+    </dd>
+  </dl>
+
+  <p><a href="/systems">Back to Systems</a></p>
+</section>
+
+<%- include('partials/footer') %>

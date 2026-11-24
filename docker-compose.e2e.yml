@@ -1,0 +1,6 @@
+services:
+  db:
+    # Use in-memory storage for end to end test data isolation
+    volumes:
+      - type: tmpfs
+        target: /var/lib/postgresql/data

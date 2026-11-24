@@ -1,0 +1,66 @@
+<%- include('partials/header') %>
+
+<section>
+  <h2>Site Detail</h2>
+
+  <dl>
+    <dt>Site Name</dt>
+    <dd><%= site.siteName %></dd>
+
+    <dt>Address Line 1</dt>
+    <dd><%= site.addressLine1 %></dd>
+
+    <dt>Address Line 2</dt>
+    <dd><%= site.addressLine2 || '—' %></dd>
+
+    <dt>City</dt>
+    <dd><%= site.city %></dd>
+
+    <dt>State</dt>
+    <dd><%= site.state %></dd>
+
+    <dt>Postal Code</dt>
+    <dd><%= site.postalCode %></dd>
+
+    <dt>Country</dt>
+    <dd><%= site.country %></dd>
+
+    <dt>Building Code</dt>
+    <dd><%= site.buildingCode %></dd>
+
+    <dt>Ownership</dt>
+    <dd><%= site.ownership %></dd>
+
+    <dt>Status</dt>
+    <dd><%= site.status %></dd>
+
+    <dt>Description</dt>
+    <dd><%= site.description || '—' %></dd>
+
+    <dt>Longitude</dt>
+    <dd><%= site.longitude != null ? site.longitude : '—' %></dd>
+
+    <dt>Latitude</dt>
+    <dd><%= site.latitude != null ? site.latitude : '—' %></dd>
+
+    <dt>Room Number(s)</dt>
+    <dd><%= site.roomNumber || '—' %></dd>
+
+    <dt>Owner Organization</dt>
+    <dd><%= site.ownerOrganization.name %></dd>
+
+    <dt>Site Contacts</dt>
+    <dd>
+      <%
+      const contacts = site.contacts && site.contacts.length
+        ? site.contacts.map(function (c) { return c.firstName + ' ' + c.lastName; }).join(', ')
+        : '—';
+      %>
+      <%= contacts %>
+    </dd>
+  </dl>
+
+  <p><a href="/sites">Back to Sites</a></p>
+</section>
+
+<%- include('partials/footer') %>

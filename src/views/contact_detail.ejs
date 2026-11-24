@@ -1,0 +1,29 @@
+<%- include('partials/header') %>
+
+<section>
+  <h2>Contact Detail</h2>
+
+  <dl>
+    <dt>First Name</dt>
+    <dd><%= contact.firstName %></dd>
+
+    <dt>Last Name</dt>
+    <dd><%= contact.lastName %></dd>
+
+    <dt>Title</dt>
+    <dd><%= contact.title || '—' %></dd>
+
+    <dt>Email</dt>
+    <dd><%= contact.email || '—' %></dd>
+
+    <dt>Phone</dt>
+    <dd><%= contact.phone || '—' %></dd>
+
+    <dt>Organization</dt>
+    <dd><%= contact.organization.name %></dd>
+  </dl>
+
+  <p><a href="/contacts">Back to Contacts</a></p>
+</section>
+
+<%- include('partials/footer') %>

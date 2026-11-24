@@ -1,0 +1,20 @@
+<%- include('partials/header') %>
+
+<section>
+  <h2>Organization Detail</h2>
+
+  <dl>
+    <dt>Name</dt>
+    <dd><%= organization.name %></dd>
+
+    <dt>Organization Type</dt>
+    <dd><%= organization.orgType %></dd>
+
+    <dt>Description</dt>
+    <dd><%= organization.description || '—' %></dd>
+  </dl>
+
+  <p><a href="/organizations">Back to Organizations</a></p>
+</section>
+
+<%- include('partials/footer') %>

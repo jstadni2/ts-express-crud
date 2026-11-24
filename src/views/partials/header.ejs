@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="https://cdn.brand.illinois.edu/favicon.ico">
+  <link rel="apple-touch-icon" href="https://cdn.brand.illinois.edu/touch-icon-40x40.png">
+  <link rel="apple-touch-icon" sizes="152x152"
+        href="https://cdn.brand.illinois.edu/touch-icon-152x152.png">
+  <link rel="apple-touch-icon" sizes="167x167"
+        href="https://cdn.brand.illinois.edu/touch-icon-167x167.png">
+  <link rel="apple-touch-icon" sizes="180x180"
+        href="https://cdn.brand.illinois.edu/touch-icon-180x180.png">
+  <link rel="dns-prefetch" href="//cdn.toolkit.illinois.edu">
+  <link rel="dns-prefetch" href="//cdn.disability.illinois.edu">
+  <link rel="stylesheet" href="//cdn.toolkit.illinois.edu/3/toolkit.css">
+  <link rel="stylesheet" href="/static/css/sort_filter_table.css">
+  <script type="module" src="//cdn.toolkit.illinois.edu/3/toolkit.js"></script>
+  <script src="//cdn.disability.illinois.edu/skipto.min.js"></script>
+  <script src="/static/js/sort_filter_table.js" defer></script>
+  <script>var SkipToConfig = { 'settings': { 'skipTo': { colorTheme: 'illinois' } } };</script>
+  <title>AV Installation Database</title>
+</head>
+
+<body style="margin: 0;">
+
+  <% const _flashes = (typeof flashes !== 'undefined' && Array.isArray(flashes)) ? flashes : []; %>
+  <% if (_flashes.length) { %>
+  <section>
+    <h2>Messages</h2>
+    <ul>
+      <% _flashes.forEach(function (msg) { %>
+      <li>[<%= msg.category %>] <%= msg.message %></li>
+      <% }); %>
+    </ul>
+  </section>
+  <% } %>
+
+  <ilw-page>
+    <ilw-header slot="header">
+      <a slot="site-name" href="/">AV Installation Database</a>
+      <div slot="links">
+        <ul class="ilw-buttons">
+          <% if (current_user) { %>
+          <li><span><%= current_user.netid %></span></li>
+          <li><a class="ilw-button" href="/logout">Logout</a></li>
+          <% } else { %>
+          <li><a class="ilw-button" href="/login">Login</a></li>
+          <% } %>
+        </ul>
+      </div>
+      <ilw-header-menu slot="navigation">
+        <ul>
+          <li><a href="/systems">Systems</a></li>
+          <li><a href="/sites">Sites</a></li>
+          <li><a href="/organizations">Organizations</a></li>
+          <li><a href="/contacts">Contacts</a></li>
+        </ul>
+      </ilw-header-menu>
+    </ilw-header>
+    <main>
+      <ilw-content width="page">

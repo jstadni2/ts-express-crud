@@ -1,0 +1,58 @@
+<%- include('partials/header') %>
+
+<section>
+  <h2>Systems</h2>
+  <% if (current_role && current_role !== 'viewer') { %>
+  <p><a href="/systems/new">Create New System</a></p>
+  <% } %>
+
+  <%
+  const columns = [
+    { label: 'Name', key: 'name', sort_type: 'text' },
+    { label: 'Type', key: 'type', sort_type: 'text' },
+    { label: 'Contacts', key: 'contacts', sort_type: 'text' },
+    { label: 'Installation Date', key: 'installation_date', sort_type: 'date' },
+    { label: 'Warranty Expiry', key: 'warranty_expiry_date', sort_type: 'date' },
+    { label: 'Site', key: 'site', sort_type: 'text' },
+    { label: 'Responsible Organization', key: 'responsible_org', sort_type: 'text' },
+    { label: 'Installer Organization', key: 'installer_org', sort_type: 'text' },
+    { label: 'Equipment Condition', key: 'equipment_condition', sort_type: 'text' },
+    { label: 'Status', key: 'status', sort_type: 'text' },
+    { label: 'Last Updated', key: 'last_updated', sort_type: 'date' },
+    { label: 'Action', key: 'action', sortable: false, filterable: false }
+  ];
+
+  let bodyHtml = '';
+  systems.forEach(function (system, index) {
+    const contacts = system.contacts || [];
+    const contactFullNames = contacts.map(function (c) { return c.firstName + ' ' + c.lastName; });
+    const contactText = contactFullNames.length ? contactFullNames.join(', ') : 'N/A';
+    const contactCells = contactFullNames.length ? contactFullNames.join(',<br>') : 'N/A';
+    const isViewer = current_role === 'viewer';
+    const actionHref = isViewer ? ('/systems/' + system.id + '/detail') : ('/systems/' + system.id + '/edit');
+    const actionLabel = isViewer ? 'View' : 'Edit';
+    bodyHtml += '<tr data-rfd-row data-testid="row-' + (index + 1) + '">';
+    bodyHtml += '<td data-testid="row-' + (index + 1) + '-name">' + system.name + '</td>';
+    bodyHtml += '<td data-testid="row-' + (index + 1) + '-type">' + (system.systemType || '') + '</td>';
+    bodyHtml += '<td data-sort-value="' + contactText + '" data-testid="row-' + (index + 1) + '-contacts">' + contactCells + '</td>';
+    bodyHtml += '<td data-sort-value="' + (system.installationDate || '') + '" data-testid="row-' + (index + 1) + '-installation_date">' + (system.installationDate || 'N/A') + '</td>';
+    bodyHtml += '<td data-sort-value="' + (system.warrantyExpiryDate || '') + '" data-testid="row-' + (index + 1) + '-warranty-expiry-date">' + (system.warrantyExpiryDate || 'N/A') + '</td>';
+    bodyHtml += '<td data-testid="row-' + (index + 1) + '-site">' + (system.site ? system.site.siteName : '') + '</td>';
+    bodyHtml += '<td data-testid="row-' + (index + 1) + '-responsible-org">' + (system.responsibleOrganization ? system.responsibleOrganization.name : 'N/A') + '</td>';
+    bodyHtml += '<td data-testid="row-' + (index + 1) + '-installer-org">' + (system.installerOrganization ? system.installerOrganization.name : 'N/A') + '</td>';
+    bodyHtml += '<td data-testid="row-' + (index + 1) + '-equipment-condition">' + (system.equipmentCondition || 'N/A') + '</td>';
+    bodyHtml += '<td data-testid="row-' + (index + 1) + '-status">' + (system.status || 'N/A') + '</td>';
+    bodyHtml += '<td data-sort-value="' + (system.lastUpdated || '') + '" data-testid="row-' + (index + 1) + '-last_updated">' + (system.lastUpdated || 'N/A') + '</td>';
+    bodyHtml += '<td data-testid="row-' + (index + 1) + '-action">';
+    bodyHtml += '<a href="' + actionHref + '">' + actionLabel + '</a>';
+    bodyHtml += '</td>';
+    bodyHtml += '</tr>';
+  });
+  if (systems.length === 0) {
+    bodyHtml += '<tr data-rfd-empty-row><td colspan="12">No systems recorded yet.</td></tr>';
+  }
+  %>
+  <%- include('partials/table', { tableId: 'systems-table', caption: 'Systems list', columns: columns, bodyHtml: bodyHtml }) %>
+</section>
+
+<%- include('partials/footer') %>

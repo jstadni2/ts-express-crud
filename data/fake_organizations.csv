@@ -1,0 +1,11 @@
+name,org_type,description
+UIUC Facilities & Services,Internal,"Manages campus physical infrastructure including telecommunications utilities and building systems"
+UIUC Department of Public Safety,Internal,"Provides campus policing, emergency communications, and public safety services"
+UIUC Athletics Department,Internal,"Oversees all varsity athletic programs, facilities, and event operations"
+UIUC Telecommunications & Networking,Internal,"Plans and operates campus-wide wired and wireless network infrastructure"
+UIUC Research Computing,Internal,"Supports high-performance computing, data storage, and research network services"
+UIUC Office of the CIO,Internal,"Sets technology strategy and governs enterprise IT systems across the university"
+WDWS-WHMS Radio Broadcasting,External,"Commercial AM/FM radio broadcaster serving the Champaign-Urbana market"
+Illinois State Police District 10,External,"State law enforcement agency responsible for east-central Illinois"
+Champaign-Urbana Mass Transit District,External,"Regional public transit authority providing bus service across the metro area"
+Motorola Solutions Inc.,External,"Radio frequency infrastructure vendor and systems integration partner"

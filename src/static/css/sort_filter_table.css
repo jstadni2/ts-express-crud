@@ -1,0 +1,124 @@
+ilw-page {
+  --ilw-content--main-margin: 0 clamp(0.75rem, 2vw, 1.25rem) 0;
+}
+
+.rfd-table-container {
+  margin: 1rem 0;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: visible;
+}
+
+.rfd-table {
+  border-collapse: collapse;
+  min-width: 100%;
+  width: max-content;
+}
+
+.rfd-table caption {
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  text-align: left;
+}
+
+.rfd-table th,
+.rfd-table td {
+  border: 1px solid #bfc7d5;
+  padding: 0.45rem;
+  vertical-align: top;
+}
+
+.rfd-table th {
+  background: #f6f8fb;
+  color: #13294b;
+}
+
+.rfd-th-content {
+  align-items: flex-start;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  min-height: 2rem;
+}
+
+.rfd-th-label {
+  color: #13294b;
+  font-weight: 600;
+}
+
+.rfd-th-controls {
+  display: inline-flex;
+  gap: 0.25rem;
+}
+
+.rfd-icon-button {
+  align-items: center;
+  display: inline-flex;
+  gap: 0.2rem;
+  min-height: 1.75rem;
+  min-width: 1.75rem;
+  padding: 0.15rem 0.35rem;
+}
+
+.rfd-table [data-rfd-sort-button],
+.rfd-table [data-rfd-filter-toggle] {
+  background: #ffffff;
+  border: 2px solid #13294b;
+  color: #13294b;
+}
+
+.rfd-table [data-rfd-sort-button]:focus,
+.rfd-table [data-rfd-filter-toggle]:focus,
+.rfd-table [data-rfd-sort-button]:focus-visible,
+.rfd-table [data-rfd-filter-toggle]:focus-visible {
+  outline: 2px solid #ff5f05;
+  outline-offset: 1px;
+}
+
+.rfd-table [data-rfd-sort-button] ilw-icon,
+.rfd-table [data-rfd-filter-toggle] ilw-icon {
+  color: currentColor;
+}
+
+.rfd-sort-indicator {
+  font-family: monospace;
+  font-size: 0.8rem;
+  line-height: 1;
+}
+
+.rfd-filter-row[hidden],
+.rfd-filter-cell-content[hidden] {
+  display: none !important;
+}
+
+.rfd-filter-row th {
+  background: #edf1f7;
+  color: #13294b;
+  padding: 0.35rem 0.45rem;
+}
+
+.rfd-filter-cell-content {
+  min-width: 10rem;
+}
+
+.rfd-filter-cell-content label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.rfd-filter-cell-content input {
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.rfd-table tbody tr[hidden] {
+  display: none;
+}
+
+.rfd-table tr[data-rfd-empty-row] td,
+.rfd-table tr[data-rfd-no-match-row] td {
+  font-style: italic;
+  text-align: center;
+}

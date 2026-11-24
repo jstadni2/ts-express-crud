@@ -1,0 +1,21 @@
+name,system_type,description,installation_date,warranty_expiry_date,installer_organization_name,equipment_condition,status,building_code,responsible_organization_name
+Armory AV Control System,Control System,"AV control system for managing displays and audio in the Armory building",2019-06-01,2022-06-01,UIUC Facilities & Services,Good,Installed,0006,UIUC Department of Public Safety
+Engineering Hall AV Distribution,Audio System,"Audio distribution system for Engineering Hall lecture halls",2019-06-01,2022-06-01,UIUC Facilities & Services,Good,Installed,0015,UIUC Department of Public Safety
+Facilities & Services AV Dispatch,Audio System,"AV dispatch system for Facilities & Services operations",2018-04-10,2021-04-10,UIUC Facilities & Services,Good,Installed,0046,UIUC Facilities & Services
+Everitt Lab Microwave AV Link,Microwave Link,"Microwave link for AV data transmission between buildings",2021-03-15,2024-03-15,UIUC Telecommunications & Networking,Good,Installed,0037,UIUC Telecommunications & Networking
+Main Library WiFi AV Network,Wi-Fi,"WiFi network supporting AV devices in Main Library",,,UIUC Telecommunications & Networking,Good,Installed,0041,UIUC Telecommunications & Networking
+Main Library WiFi AV Network 5GHz,Wi-Fi,"5GHz WiFi network for high-bandwidth AV applications",,,UIUC Telecommunications & Networking,Good,Installed,0041,UIUC Telecommunications & Networking
+Illini Union WiFi AV Network 2.4GHz,Wi-Fi,"WiFi network for AV devices in Illini Union",,,UIUC Telecommunications & Networking,Good,Installed,0023,UIUC Telecommunications & Networking
+Illini Union WiFi AV Network 5GHz,Wi-Fi,"5GHz WiFi network for AV devices in Illini Union",,,UIUC Telecommunications & Networking,Good,Installed,0023,UIUC Telecommunications & Networking
+Illini Union WiFi AV Network 6GHz,Wi-Fi,"6GHz WiFi network for future AV applications",,,UIUC Office of the CIO,Good,Installed,0023,UIUC Office of the CIO
+Everitt Lab HF Amateur AV Station,Amateur Radio,"Amateur radio station for AV emergency communications",2015-01-01,2018-01-01,UIUC Facilities & Services,Good,Installed,0037,UIUC Facilities & Services
+Main Library RFID AV Tracking,RFID,"RFID system for tracking AV equipment in Main Library",,,UIUC Facilities & Services,Good,Installed,0041,UIUC Facilities & Services
+George Huff Hall AV Coordination UHF,Land Mobile Radio,"UHF radio system for AV event coordination at George Huff Hall",2020-07-01,2023-07-01,UIUC Athletics Department,Good,Installed,0058,UIUC Athletics Department
+George Huff Hall AV Scoreboard Link,Point-to-Point Data Link,"Wireless link for AV scoreboard data at Athletics complex",,,UIUC Athletics Department,Good,Installed,0058,UIUC Athletics Department
+Foellinger Auditorium AV Mic System,Wireless Microphone,"UHF wireless microphone system for Foellinger Auditorium",2022-08-01,2025-08-01,UIUC Facilities & Services,Good,Installed,0007,UIUC Facilities & Services
+Krannert Center AV Mic System A,Wireless Microphone,"Wireless microphone system A for Krannert Center main stage",2022-08-01,2025-08-01,UIUC Facilities & Services,Good,Installed,0052,UIUC Facilities & Services
+Krannert Center AV In-Ear Monitor,Wireless Monitor,"In-ear monitor system for Krannert Center performers",2022-08-01,2025-08-01,UIUC Facilities & Services,Good,Installed,0052,UIUC Facilities & Services
+Lincoln Hall AV Assistive Listening,Assistive Listening,"FM assistive listening system for Lincoln Hall accessibility",2020-09-01,2023-09-01,UIUC Facilities & Services,Good,Installed,0027,UIUC Facilities & Services
+Advanced Computation Bldg AV Wireless Bridge,Millimeter Wave Link,"60GHz wireless bridge for AV data in data center",,,UIUC Research Computing,Good,Installed,0017,UIUC Research Computing
+Armory DECT AV Phone System,DECT Telephony,"DECT 6.0 phone system for AV administrative offices",,,UIUC Telecommunications & Networking,Good,Installed,0006,UIUC Telecommunications & Networking
+Observatory 327 MHz AV Radio Astronomy Receiver,Radio Telescope,"Receive-only radio astronomy system for AV research (decommissioned)",,,UIUC Research Computing,Poor,Retired,0033,UIUC Research Computing

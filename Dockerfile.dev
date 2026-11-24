@@ -1,0 +1,14 @@
+FROM node:24-slim
+WORKDIR /app
+ENV NODE_ENV=development
+
+COPY package.json package-lock.json ./
+RUN npm install
+
+COPY . .
+RUN npm run build
+
+EXPOSE 8080
+
+ENV PORT=8080
+CMD ["node", "dist/dev/app_dev.js"]
