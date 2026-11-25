@@ -1,12 +1,22 @@
+# Dependencies
 node_modules/
+
+# Build output
 dist/
+
+# Python (interim Pytest-Playwright e2e suite)
 .venv/
-.env
-.certs/
-playwright-report/
-test-results/
 __pycache__/
 .pytest_cache/
-*.pyc
-*.log
+
+# Playwright
+test-results/
+playwright-report/
+.browserstack/
+
+# Local environment/secrets
+.env
+.certs/
+
+# OS noise
 .DS_Store

@@ -1,0 +1,81 @@
+{% include 'partials/head' %}
+<section>
+  <h2>{% if site %}Edit Site{% else %}Create Site{% endif %}</h2>
+
+  <form method="post" action="{{ form_action }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <label for="site_name">Site Name</label>
+    <input id="site_name" name="site_name" type="text" value="{{ site.site_name | default: '' }}" required>
+
+    <label for="address_line1">Address Line 1</label>
+    <input id="address_line1" name="address_line1" type="text" value="{{ site.address_line1 | default: '' }}" required>
+
+    <label for="address_line2">Address Line 2</label>
+    <input id="address_line2" name="address_line2" type="text" value="{{ site.address_line2 | default: '' }}">
+
+    <label for="city">City</label>
+    <input id="city" name="city" type="text" value="{{ site.city | default: '' }}" required>
+
+    <label for="state">State</label>
+    <input id="state" name="state" type="text" value="{{ site.state | default: '' }}" required>
+
+    <label for="postal_code">Postal Code</label>
+    <input id="postal_code" name="postal_code" type="text" value="{{ site.postal_code | default: '' }}" required>
+
+    <label for="country">Country</label>
+    <input id="country" name="country" type="text" value="{{ site.country | default: '' }}" required>
+
+    <label for="building_code">Building Code</label>
+    <input id="building_code" name="building_code" type="text" value="{{ site.building_code | default: '' }}" required>
+
+    <label for="ownership">Ownership</label>
+    <select id="ownership" name="ownership" required>
+      {% for option in ownership_options %}
+      <option value="{{ option }}" {% if site and site.ownership == option %}selected{% endif %}>{{ option }}</option>
+      {% endfor %}
+    </select>
+
+    <label for="status">Status</label>
+    <select id="status" name="status" required>
+      {% for option in status_options %}
+      <option value="{{ option }}" {% if site and site.status == option %}selected{% endif %}>{{ option }}</option>
+      {% endfor %}
+    </select>
+
+    <label for="description">Description</label>
+    <textarea id="description" name="description" rows="4">{{ site.description | default: '' }}</textarea>
+
+    <label for="longitude">Longitude</label>
+    <input id="longitude" name="longitude" type="text" value="{{ site.longitude | default: '' }}">
+
+    <label for="latitude">Latitude</label>
+    <input id="latitude" name="latitude" type="text" value="{{ site.latitude | default: '' }}">
+
+    <label for="room_number">Room Number(s)</label>
+    <input id="room_number" name="room_number" type="text" value="{{ site.room_number | default: '' }}">
+
+    <label for="owner_organization_id">Owner Organization</label>
+    <select id="owner_organization_id" name="owner_organization_id" required>
+      {% for organization in organizations %}
+      <option value="{{ organization.id }}" {% if site and site.owner_organization_id == organization.id %}selected{% endif %}>{{ organization.name }}</option>
+      {% endfor %}
+    </select>
+
+    <label for="contact_ids">Site Contacts (multi-select)</label>
+    <select id="contact_ids" name="contact_ids" multiple size="6">
+      {% for contact in contacts %}
+      <option value="{{ contact.id }}" {% if site and site.contact_ids contains contact.id %}selected{% endif %}>{{ contact.full_name }} ({{ contact.org_name }})</option>
+      {% endfor %}
+    </select>
+
+    <button type="submit">Save</button>
+  </form>
+
+  {% if site %}
+  <form method="post" action="/sites/{{ site.id }}/delete" onsubmit="return confirm('Delete this site? This cannot be undone.');">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <button type="submit">Delete Site</button>
+  </form>
+  {% endif %}
+</section>
+{% include 'partials/footer' %}

@@ -25,6 +25,7 @@ services:
       dockerfile: Dockerfile.dev
     container_name: avdb-web
     environment:
+      NODE_ENV: development
       SECRET_KEY: dev-secret-key
       DATABASE_URL: postgresql://avdb:avdb@db:5432/avdb
     ports:

@@ -1,0 +1,48 @@
+{% include 'partials/head' %}
+<section>
+  <h2>System Detail</h2>
+
+  <dl>
+    <dt>System Name</dt>
+    <dd>{{ system.name }}</dd>
+
+    <dt>System Type</dt>
+    <dd>{{ system.system_type }}</dd>
+
+    <dt>Description</dt>
+    <dd>{{ system.description | default: '—' }}</dd>
+
+    <dt>Installation Date</dt>
+    <dd>{{ system.installation_date | default: '—' }}</dd>
+
+    <dt>Warranty Expiry Date</dt>
+    <dd>{{ system.warranty_expiry_date | default: '—' }}</dd>
+
+    <dt>Installer Organization</dt>
+    <dd>{{ system.installer_org | default: '—' }}</dd>
+
+    <dt>Equipment Condition</dt>
+    <dd>{{ system.equipment_condition | default: '—' }}</dd>
+
+    <dt>Status</dt>
+    <dd>{{ system.status | default: '—' }}</dd>
+
+    <dt>Site</dt>
+    <dd>{{ system.site_name }} ({{ system.building_code }})</dd>
+
+    <dt>Responsible Organization</dt>
+    <dd>{{ system.responsible_org | default: '—' }}</dd>
+
+    <dt>System Contacts</dt>
+    <dd>
+      {% if system.contacts_text %}
+      {{ system.contacts_text }}
+      {% else %}
+      —
+      {% endif %}
+    </dd>
+  </dl>
+
+  <p><a href="/systems">Back to Systems</a></p>
+</section>
+{% include 'partials/footer' %}

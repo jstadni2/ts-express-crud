@@ -1,39 +1,34 @@
 {
   "name": "avdb-ts-express",
   "version": "1.0.0",
-  "description": "AV Installation Database (AVDB) ported to TypeScript + Express.js + Drizzle ORM",
+  "description": "AV Installation Database (AVDB) — TypeScript + Express.js port of the Flask CRUD app",
   "type": "module",
   "private": true,
+  "engines": {
+    "node": ">=24"
+  },
   "scripts": {
-    "build": "tsc && npm run copy-assets",
-    "copy-assets": "mkdir -p dist/src/views dist/src/static && cp -r src/views/* dist/src/views/ && cp -r src/static/* dist/src/static/",
+    "build": "tsc -p tsconfig.json && node scripts/copy-assets.mjs",
     "start": "node dist/src/bootstrap.js",
     "dev": "node dist/dev/app_dev.js",
     "init-db": "node dist/src/init_db.js",
-    "test:e2e": "playwright test",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json --noEmit",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
-    "bcryptjs": "^3.0.2",
-    "cookie-parser": "^1.4.7",
-    "dotenv": "^17.0.0",
     "drizzle-orm": "0.45.4",
-    "ejs": "^3.1.10",
     "express": "5.3.0",
     "express-session": "^1.18.1",
-    "openid-client": "^6.3.4",
-    "pg": "8.23.1",
-    "pg-format": "^1.0.4"
+    "liquidjs": "10.30.1",
+    "openid-client": "6.9.1",
+    "pg": "8.23.1"
   },
   "devDependencies": {
-    "@playwright/test": "^1.65.1",
-    "@types/cookie-parser": "^1.4.8",
+    "@playwright/test": "1.65.1",
     "@types/express": "^5.0.0",
     "@types/express-session": "^1.18.1",
-    "@types/node": "^22.0.0",
+    "@types/node": "^24.0.0",
     "@types/pg": "^8.11.0",
-    "@types/pg-format": "^1.0.5",
-    "tsx": "^4.19.0",
     "typescript": "7.0.2"
   }
 }

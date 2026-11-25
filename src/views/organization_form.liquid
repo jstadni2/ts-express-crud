@@ -1,0 +1,30 @@
+{% include 'partials/head' %}
+<section>
+  <h2>{% if organization %}Edit Organization{% else %}Create Organization{% endif %}</h2>
+
+  <form method="post" action="{{ form_action }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <label for="name">Name</label>
+    <input id="name" name="name" type="text" value="{{ organization.name | default: '' }}" required>
+
+    <label for="org_type">Organization Type</label>
+    <select id="org_type" name="org_type" required>
+      {% for option in org_type_options %}
+      <option value="{{ option }}" {% if organization and organization.org_type == option %}selected{% endif %}>{{ option }}</option>
+      {% endfor %}
+    </select>
+
+    <label for="description">Description</label>
+    <textarea id="description" name="description" rows="4">{{ organization.description | default: '' }}</textarea>
+
+    <button type="submit">Save</button>
+  </form>
+
+  {% if organization %}
+  <form method="post" action="/organizations/{{ organization.id }}/delete" onsubmit="return confirm('Delete this organization? This cannot be undone.');">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <button type="submit">Delete Organization</button>
+  </form>
+  {% endif %}
+</section>
+{% include 'partials/footer' %}

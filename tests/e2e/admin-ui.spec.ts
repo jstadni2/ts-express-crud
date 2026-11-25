@@ -1,8 +1,7 @@
-import { test, expect, type Page } from "@playwright/test";
-
-import { E2E_BASE_URL } from "./base_url";
+import { test, expect } from "@playwright/test";
 import {
   acceptNextDialog,
+  baseUrl,
   createContact,
   createOrganization,
   createSite,
@@ -13,11 +12,12 @@ import {
   setActiveRole,
   table,
   uniqueName,
-} from "./ui_helpers";
+} from "./ui_helpers.js";
+
+const base = baseUrl();
 
 test("admin list actions show edit links", async ({ page }) => {
-  const baseUrl = E2E_BASE_URL;
-  await setActiveRole(page, baseUrl, "Admin");
+  await setActiveRole(page, base, "Admin");
 
   const orgName = uniqueName("AdminListOrg");
   const firstName = "Admin";
@@ -26,10 +26,10 @@ test("admin list actions show edit links", async ({ page }) => {
   const buildingCode = uniqueName("AL").slice(0, 8);
   const systemName = uniqueName("AdminListSystem");
 
-  await createOrganization(page, baseUrl, orgName);
-  await createContact(page, baseUrl, firstName, lastName, orgName, `${lastName.toLowerCase()}@example.edu`);
-  await createSite(page, baseUrl, siteName, buildingCode, orgName);
-  await createSystem(page, baseUrl, {
+  await createOrganization(page, base, orgName);
+  await createContact(page, base, firstName, lastName, orgName, `${lastName.toLowerCase()}@example.edu`);
+  await createSite(page, base, siteName, buildingCode, orgName);
+  await createSystem(page, base, {
     name: systemName,
     siteName,
     siteBuildingCode: buildingCode,
@@ -38,15 +38,45 @@ test("admin list actions show edit links", async ({ page }) => {
     status: "Installed",
   });
 
-  const coverage: Array<[string, string, string, string, string]> = [
-    ["/systems", "systems-table", systemName, "Create New System", "Edit System"],
-    ["/sites", "sites-table", siteName, "Create New Site", "Edit Site"],
-    ["/organizations", "organizations-table", orgName, "Create New Organization", "Edit Organization"],
-    ["/contacts", "contacts-table", `${firstName} ${lastName}`, "Create New Contact", "Edit Contact"],
+  const coverage: Array<{
+    path: string;
+    tableId: string;
+    rowText: string;
+    createText: string;
+    editHeading: string;
+  }> = [
+    {
+      path: "/systems",
+      tableId: "systems-table",
+      rowText: systemName,
+      createText: "Create New System",
+      editHeading: "Edit System",
+    },
+    {
+      path: "/sites",
+      tableId: "sites-table",
+      rowText: siteName,
+      createText: "Create New Site",
+      editHeading: "Edit Site",
+    },
+    {
+      path: "/organizations",
+      tableId: "organizations-table",
+      rowText: orgName,
+      createText: "Create New Organization",
+      editHeading: "Edit Organization",
+    },
+    {
+      path: "/contacts",
+      tableId: "contacts-table",
+      rowText: `${firstName} ${lastName}`,
+      createText: "Create New Contact",
+      editHeading: "Edit Contact",
+    },
   ];
 
-  for (const [path, tableId, rowText, createText, editHeading] of coverage) {
-    await page.goto(`${baseUrl}${path}`);
+  for (const { path, tableId, rowText, createText, editHeading } of coverage) {
+    await page.goto(`${base}${path}`);
     await expect(page.getByRole("link", { name: createText })).toBeVisible();
     const row = rowByText(page, tableId, rowText);
     await expect(row).toBeVisible();
@@ -57,12 +87,11 @@ test("admin list actions show edit links", async ({ page }) => {
   }
 });
 
-test("admin non-user CRUD smoke", async ({ page }) => {
-  const baseUrl = E2E_BASE_URL;
-  await setActiveRole(page, baseUrl, "Admin");
+test("admin non user crud smoke", async ({ page }) => {
+  await setActiveRole(page, base, "Admin");
 
   const orgName = uniqueName("AdminSmokeOrg");
-  await createOrganization(page, baseUrl, orgName);
+  await createOrganization(page, base, orgName);
   await openEditForRow(page, "organizations-table", orgName);
   await page.fill("#description", "Admin smoke org");
   await page.getByRole("button", { name: "Save" }).click();
@@ -70,7 +99,7 @@ test("admin non-user CRUD smoke", async ({ page }) => {
 
   const contactFirst = "Admin";
   const contactLast = uniqueName("SmokeContact");
-  await createContact(page, baseUrl, contactFirst, contactLast, orgName, `${contactLast.toLowerCase()}@example.edu`);
+  await createContact(page, base, contactFirst, contactLast, orgName, `${contactLast.toLowerCase()}@example.edu`);
   await openEditForRow(page, "contacts-table", contactFirst);
   await page.fill("#title", "Admin Smoke");
   await page.getByRole("button", { name: "Save" }).click();
@@ -78,14 +107,14 @@ test("admin non-user CRUD smoke", async ({ page }) => {
 
   const siteName = uniqueName("AdminSmokeSite");
   const buildingCode = uniqueName("AS").slice(0, 8);
-  await createSite(page, baseUrl, siteName, buildingCode, orgName);
+  await createSite(page, base, siteName, buildingCode, orgName);
   await openEditForRow(page, "sites-table", siteName);
   await page.fill("#room_number", "303");
   await page.getByRole("button", { name: "Save" }).click();
   await expectFlashContains(page, "Site updated.");
 
   const systemName = uniqueName("AdminSmokeSystem");
-  await createSystem(page, baseUrl, {
+  await createSystem(page, base, {
     name: systemName,
     siteName,
     siteBuildingCode: buildingCode,
@@ -103,19 +132,19 @@ test("admin non-user CRUD smoke", async ({ page }) => {
   await page.getByRole("button", { name: "Delete System" }).click();
   await expectFlashContains(page, "System deleted.");
 
-  await page.goto(`${baseUrl}/sites`);
+  await page.goto(`${base}/sites`);
   await openEditForRow(page, "sites-table", siteName);
   acceptNextDialog(page);
   await page.getByRole("button", { name: "Delete Site" }).click();
   await expectFlashContains(page, "Site deleted.");
 
-  await page.goto(`${baseUrl}/contacts`);
+  await page.goto(`${base}/contacts`);
   await openEditForRow(page, "contacts-table", contactFirst);
   acceptNextDialog(page);
   await page.getByRole("button", { name: "Delete Contact" }).click();
   await expectFlashContains(page, "Contact deleted.");
 
-  await page.goto(`${baseUrl}/organizations`);
+  await page.goto(`${base}/organizations`);
   await openEditForRow(page, "organizations-table", orgName);
   acceptNextDialog(page);
   await page.getByRole("button", { name: "Delete Organization" }).click();

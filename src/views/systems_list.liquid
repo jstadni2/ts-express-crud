@@ -1,0 +1,46 @@
+{% include 'partials/head' %}
+<section>
+  <h2>Systems</h2>
+  {% if current_role and current_role != 'viewer' %}
+  <p><a href="/systems/new">Create New System</a></p>
+  {% endif %}
+
+  {% capture rows %}
+    {% for system in systems %}
+    <tr data-rfd-row data-testid="row-{{ forloop.index }}">
+      <td data-testid="row-{{ forloop.index }}-name">{{ system.name }}</td>
+      <td data-testid="row-{{ forloop.index }}-type">{{ system.system_type }}</td>
+      <td data-sort-value="{{ system.contacts_text | default: 'N/A' }}" data-testid="row-{{ forloop.index }}-contacts">
+        {% if system.contacts_html %}
+        {{ system.contacts_html }}
+        {% else %}
+        N/A
+        {% endif %}
+      </td>
+      <td data-sort-value="{{ system.installation_date }}" data-testid="row-{{ forloop.index }}-installation_date">{{ system.installation_date | default: 'N/A' }}</td>
+      <td data-sort-value="{{ system.warranty_expiry_date }}" data-testid="row-{{ forloop.index }}-warranty-expiry-date">{{ system.warranty_expiry_date | default: 'N/A' }}</td>
+      <td data-testid="row-{{ forloop.index }}-site">{{ system.site_name }}</td>
+      <td data-testid="row-{{ forloop.index }}-responsible-org">{{ system.responsible_org | default: 'N/A' }}</td>
+      <td data-testid="row-{{ forloop.index }}-installer-org">{{ system.installer_org | default: 'N/A' }}</td>
+      <td data-testid="row-{{ forloop.index }}-equipment-condition">{{ system.equipment_condition | default: 'N/A' }}</td>
+      <td data-testid="row-{{ forloop.index }}-status">{{ system.status | default: 'N/A' }}</td>
+      <td data-sort-value="{{ system.last_updated }}" data-testid="row-{{ forloop.index }}-last_updated">{{ system.last_updated | default: 'N/A' }}</td>
+      <td data-testid="row-{{ forloop.index }}-action">
+        {% if current_role and current_role == 'viewer' %}
+        <a href="/systems/{{ system.id }}/detail">View</a>
+        {% else %}
+        <a href="/systems/{{ system.id }}/edit">Edit</a>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+    {% if systems.size == 0 %}
+    <tr data-rfd-empty-row>
+      <td colspan="12">No systems recorded yet.</td>
+    </tr>
+    {% endif %}
+  {% endcapture %}
+
+  {% include 'partials/sort_filter_table', table_id: 'systems-table', caption: 'Systems list', columns: columns, rows: rows %}
+</section>
+{% include 'partials/footer' %}

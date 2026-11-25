@@ -1,69 +1,90 @@
-import type { Request } from "express";
-import crypto from "node:crypto";
+import type { Request, Response } from "express";
 
 export const AUTH_SESSION_KEY = "user";
 export const AUTH_ID_TOKEN_KEY = "oidc_id_token";
 export const AUTH_RETURN_TO_KEY = "post_login_redirect";
 
-// Session exemption list is applied by name. The static assets are excluded.
-export const AUTH_EXEMPT_PATHS = new Set<string>(["/login", "/auth/callback", "/logout"]);
+/** Routes that never require an authenticated session. */
+export const AUTH_EXEMPT_PATHS: ReadonlySet<string> = new Set([
+  "/login",
+  "/auth/callback",
+  "/logout",
+]);
 
-export type SessionUser = {
+export interface SessionUser {
   netid: string;
-  roles: string[];
-  role: string | null;
-};
-
-const VALID_ROLES = new Set(["admin", "maintainer", "viewer", "developer"]);
-
-/** Normalize a raw role value to a canonical lowercase role or null. */
-export function normalizeRoleName(raw: string | undefined | null): string | null {
-  if (raw === null || raw === undefined) return null;
-  const role = String(raw).trim().toLowerCase();
-  return VALID_ROLES.has(role) ? role : null;
+  roles?: unknown;
+  role?: unknown;
 }
 
-/** Extract, dedupe and order roles from a session user dict. */
-export function sessionUserRoles(user: SessionUser | null | undefined): string[] {
-  if (!user || typeof user !== "object") return [];
+export interface AuthCallbackResult {
+  sessionUser: SessionUser;
+  idToken: string;
+}
 
-  const rawRoles = Array.isArray(user.roles) ? user.roles : user.roles ? [user.roles as string] : [];
+/**
+ * Port of the `AuthBackend` protocol from `src/app.py`. Implementations start
+ * login, complete the OIDC callback, and resolve the IdP logout URL.
+ */
+export interface AuthBackend {
+  /** Start authentication and send the redirect (or error) response. */
+  login(req: Request, res: Response): void | Promise<void>;
+  /** Handle the callback and return the session user and ID token. */
+  authCallback(req: Request, res: Response): Promise<AuthCallbackResult> | AuthCallbackResult;
+  /** Return an IdP logout URL, or null for local-only logout. */
+  logoutRedirectUrl(req: Request): string | null;
+}
+
+export function normalizeRoleName(rawValue: unknown): string | null {
+  if (rawValue === null || rawValue === undefined) return null;
+  const roleName = String(rawValue).trim().toLowerCase();
+  if (["admin", "maintainer", "viewer", "developer"].includes(roleName)) {
+    return roleName;
+  }
+  return null;
+}
+
+/** Port of `_session_user_roles`: normalize, dedupe, developer last. */
+export function sessionUserRoles(sessionUser: SessionUser | null): string[] {
+  if (!sessionUser || typeof sessionUser !== "object") return [];
+
+  let rawRoles: unknown = sessionUser.roles ?? [];
+  if (typeof rawRoles === "string") rawRoles = [rawRoles];
+
   const roles: string[] = [];
   const seen = new Set<string>();
-
-  for (const raw of rawRoles as unknown[]) {
-    const normalized = normalizeRoleName(raw as string);
+  for (const rawRole of Array.isArray(rawRoles) ? rawRoles : []) {
+    const normalized = normalizeRoleName(rawRole);
     if (normalized && !seen.has(normalized)) {
       seen.add(normalized);
       roles.push(normalized);
     }
   }
 
-  const activeRole = normalizeRoleName(user.role);
+  const activeRole = normalizeRoleName(sessionUser.role);
   if (activeRole && !seen.has(activeRole)) {
-    seen.add(activeRole);
     roles.push(activeRole);
   }
 
   if (roles.includes("developer")) {
-    const dev = roles.filter((r) => r !== "developer");
-    roles.splice(0, roles.length, ...dev, "developer");
+    return roles.filter((role) => role !== "developer").concat(["developer"]);
   }
 
   return roles;
 }
 
-/** Return the user's most privileged role (admin > maintainer > viewer). */
-export function activeSessionRole(user: SessionUser | null | undefined): string | null {
-  const roles = sessionUserRoles(user);
+/** Port of `_active_session_role`: the user's most privileged role. */
+export function activeSessionRole(sessionUser: SessionUser | null): string | null {
   for (const role of ["admin", "maintainer", "viewer"]) {
-    if (roles.includes(role)) return role;
+    if (sessionUserRoles(sessionUser).includes(role)) {
+      return role;
+    }
   }
   return null;
 }
 
 export function currentUser(req: Request): SessionUser | null {
-  const user = (req.session as any)[AUTH_SESSION_KEY];
+  const user = req.session?.[AUTH_SESSION_KEY];
   return user && typeof user === "object" ? (user as SessionUser) : null;
 }
 
@@ -75,97 +96,138 @@ export function currentUserRole(req: Request): string | null {
   return activeSessionRole(currentUser(req));
 }
 
-export function isSafeRedirectTarget(target: string | undefined | null, req: Request): boolean {
-  if (!target) return false;
-  if (target.startsWith("//")) return false;
+/** Port of `_authman_role_map` (ordered entries, keys lowered, values trimmed). */
+export function authmanRoleEntries(): Array<[roleName: string, mappedValue: string]> {
+  let mapping: unknown;
   try {
-    const parsed = new URL(target, "http://local.invalid");
-    if (parsed.hostname === "local.invalid") {
-      // relative URL
-      return target.startsWith("/");
-    }
-    const host = req.get("host") || "";
-    const hostname = host.split(":")[0];
-    return (
-      (parsed.protocol === "http:" || parsed.protocol === "https:") &&
-      parsed.hostname === hostname
-    );
+    mapping = JSON.parse(process.env.AUTHMAN_ROLES ?? "{}");
   } catch {
-    return false;
+    return [];
   }
-}
+  if (!mapping || typeof mapping !== "object" || Array.isArray(mapping)) return [];
 
-/** Parse AUTHMAN_ROLES env JSON into a Map<rolename, memberof-value>. */
-export function authmanRoleMap(): Map<string, string> {
-  const mapping: Record<string, unknown> = {};
-  try {
-    Object.assign(mapping, JSON.parse(process.env.AUTHMAN_ROLES || "{}"));
-  } catch {
-    return new Map();
+  const entries: Array<[string, string]> = [];
+  for (const [key, value] of Object.entries(mapping as Record<string, unknown>)) {
+    if (!key || typeof value !== "string") continue;
+    const roleName = key.trim().toLowerCase();
+    const mappedValue = value.trim();
+    if (roleName && mappedValue) entries.push([roleName, mappedValue]);
   }
-  const result = new Map<string, string>();
-  for (const [key, value] of Object.entries(mapping)) {
-    const k = key.trim().toLowerCase();
-    if (k) result.set(k, String(value).trim());
-  }
-  return result;
+  return entries;
 }
 
 /**
- * Map a user's `uiucedu_is_member_of` values to roles using the configured
- * AUTHMAN_ROLES mapping. Roles are returned in mapping (hierarchy) order.
+ * Port of `_user_roles_from_member_of`: map AuthMan membership values onto
+ * application roles, preserving the AUTHMAN_ROLES hierarchy order.
  */
 export function userRolesFromMemberOf(rawMembership: unknown): string[] {
   if (rawMembership === null || rawMembership === undefined) return [];
 
-  const values: string[] = [];
-  if (typeof rawMembership === "string") {
-    values.push(rawMembership);
-  } else if (Array.isArray(rawMembership)) {
-    values.push(...(rawMembership as string[]).map(String));
-  } else {
-    values.push(String(rawMembership));
-  }
+  let values: unknown[];
+  if (typeof rawMembership === "string") values = [rawMembership];
+  else if (Array.isArray(rawMembership)) values = rawMembership;
+  else values = [String(rawMembership)];
 
-  const memberValues = new Set(values.map((v) => v.trim()).filter(Boolean));
-  const map = authmanRoleMap();
+  const memberValues = new Set(
+    values.map((value) => String(value).trim()).filter((value) => value !== ""),
+  );
+
   const roles: string[] = [];
-  for (const [roleName, mappedValue] of map.entries()) {
-    if (memberValues.has(mappedValue)) {
-      roles.push(roleName);
-    }
+  for (const [roleName, mappedValue] of authmanRoleEntries()) {
+    if (memberValues.has(mappedValue)) roles.push(roleName);
   }
-  return roles.sort((a, b) => {
-    const keys = [...map.keys()];
-    return keys.indexOf(a) - keys.indexOf(b);
-  });
-}
-
-/** Generate a cryptographically-random secret key (used for dev fallback). */
-export function randomSecretKey(): string {
-  return crypto.randomBytes(32).toString("hex");
+  return roles;
 }
 
 // ---------------------------------------------------------------------------
-// Auth backend protocol
+// Post-login redirect handling (port of `_is_safe_redirect_target` etc.)
+// ---------------------------------------------------------------------------
 
-import type { Response } from "express";
-
-/**
- * Authentication backend used by the application. `login` and
- * `authCallback` are expected to short-circuit the request (redirect or
- * render). `logoutRedirectUrl` returns an IdP logout URL or null for
- * local-only logout.
- */
-export interface AuthBackend {
-  login(req: Request, res: Response): void;
-  authCallback(req: Request, res: Response): void;
-  logoutRedirectUrl(): string | null;
+interface ParsedTarget {
+  scheme: string;
+  netloc: string;
+  path: string;
 }
 
-/** Check whether OIDC is configured with a client id/secret. */
-export function isOidcConfigured(): boolean {
-  return Boolean(
-    process.env.SHIBBOLETH_CLIENT_ID && process.env.SHIBBOLETH_CLIENT_SECRET,
+/** Minimal URL split mirroring Python's `urllib.parse.urlparse`. */
+function parseTarget(target: string): ParsedTarget {
+  let rest = target;
+  let scheme = "";
+  const schemeMatch = /^([a-zA-Z][a-zA-Z0-9+.-]*):/.exec(rest);
+  if (schemeMatch) {
+    scheme = schemeMatch[1];
+    rest = rest.slice(schemeMatch[0].length);
+  }
+
+  let netloc = "";
+  if (rest.startsWith("//")) {
+    const relative = rest.slice(2);
+    const end = relative.search(/[/?#]/);
+    if (end === -1) {
+      netloc = relative;
+      rest = "";
+    } else {
+      netloc = relative.slice(0, end);
+      rest = relative.slice(end);
+    }
+  }
+
+  return { scheme, netloc, path: rest };
+}
+
+export function isSafeRedirectTarget(req: Request, target: string | null | undefined): boolean {
+  if (!target) return false;
+
+  const parsed = parseTarget(target);
+  if (!parsed.netloc) {
+    return parsed.path.startsWith("/");
+  }
+
+  const host = req.get("host");
+  return (
+    (parsed.scheme === "http" || parsed.scheme === "https") &&
+    host !== undefined &&
+    parsed.netloc === host
   );
+}
+
+function requestUrl(req: Request): string {
+  const host = req.get("host") ?? "localhost";
+  return `${req.protocol}://${host}${req.originalUrl}`;
+}
+
+/** Port of `_store_post_login_redirect`. */
+export function storePostLoginRedirect(req: Request): void {
+  if (req.method === "GET" && isSafeRedirectTarget(req, requestUrl(req))) {
+    req.session[AUTH_RETURN_TO_KEY] = requestUrl(req);
+    return;
+  }
+
+  const referrer = req.get("referer");
+  if (isSafeRedirectTarget(req, referrer)) {
+    req.session[AUTH_RETURN_TO_KEY] = referrer;
+    return;
+  }
+
+  req.session[AUTH_RETURN_TO_KEY] = "/";
+}
+
+/** Port of `_pop_post_login_redirect`. */
+export function popPostLoginRedirect(req: Request): string {
+  const target: string | undefined = req.session[AUTH_RETURN_TO_KEY];
+  delete req.session[AUTH_RETURN_TO_KEY];
+  if (target && isSafeRedirectTarget(req, target)) {
+    return target;
+  }
+  return "/";
+}
+
+/** Port of `_login_claims`: request the claims the app depends on. */
+export function loginClaims(): string {
+  return JSON.stringify({
+    id_token: {
+      preferred_username: { essential: true },
+      uiucedu_is_member_of: { essential: true },
+    },
+  });
 }

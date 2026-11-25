@@ -1,0 +1,75 @@
+<div class="rfd-table-container" data-rfd-table-container>
+  <table id="{{ table_id }}" class="rfd-table" data-rfd-enhanced-table data-testid="{{ table_id }}">
+    <caption>{{ caption }}</caption>
+    <thead>
+      <tr>
+        {% for column in columns %}
+        <th scope="col"
+            data-column-key="{{ column.key }}"
+            data-sort-type="{{ column.sort_type }}"
+            data-testid="column-{{ column.key }}"
+            {% if column.sortable %}data-sortable="true" aria-sort="none"{% endif %}
+            {% if column.filterable %}data-filterable="true"{% endif %}>
+          <div class="rfd-th-content">
+            <span class="rfd-th-label">{{ column.label }}</span>
+            <span class="rfd-th-controls">
+              {% if column.sortable %}
+              <button type="button"
+                      class="ilw-button ilw-button-small rfd-icon-button rfd-control-button"
+                      data-rfd-sort-button
+                      data-testid="sort-button-{{ column.key }}"
+                      aria-label="Sort {{ column.label }}">
+                <ilw-icon icon="more" aria-hidden="true"></ilw-icon>
+                <span class="ilw-sr-only" data-rfd-sort-text>Sort {{ column.label }} not applied</span>
+                <span class="rfd-sort-indicator" data-rfd-sort-indicator aria-hidden="true">&lt;&gt;</span>
+              </button>
+              {% endif %}
+              {% if column.filterable %}
+              <button type="button"
+                      class="ilw-button ilw-button-small rfd-icon-button rfd-control-button"
+                      data-rfd-filter-toggle
+                      data-testid="filter-toggle-{{ column.key }}"
+                      data-column-index="{{ forloop.index0 }}"
+                      aria-expanded="false"
+                      aria-controls="{{ table_id }}_filter_cell_{{ forloop.index0 }}"
+                      aria-label="Filter {{ column.label }}">
+                <ilw-icon icon="search" aria-hidden="true"></ilw-icon>
+                <span class="ilw-sr-only">Toggle filter for {{ column.label }}</span>
+              </button>
+              {% endif %}
+            </span>
+          </div>
+        </th>
+        {% endfor %}
+      </tr>
+      <tr class="rfd-filter-row" data-rfd-filter-row hidden>
+        {% for column in columns %}
+        <th scope="col" class="rfd-filter-cell{% unless column.filterable %} rfd-filter-cell-empty{% endunless %}">
+          {% if column.filterable %}
+          <div id="{{ table_id }}_filter_cell_{{ forloop.index0 }}"
+               class="rfd-filter-cell-content"
+               data-rfd-filter-cell
+               data-testid="filter-cell-{{ column.key }}"
+               hidden>
+            <label for="{{ table_id }}_filter_input_{{ forloop.index0 }}">Filter {{ column.label }}</label>
+            <input id="{{ table_id }}_filter_input_{{ forloop.index0 }}"
+                   data-rfd-filter-input
+                   data-testid="filter-row-{{ column.key }}"
+                   data-column-index="{{ forloop.index0 }}"
+                   type="text"
+                   autocomplete="off">
+          </div>
+          {% endif %}
+        </th>
+        {% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      {{ rows }}
+      <tr data-rfd-no-match-row hidden>
+        <td colspan="{{ columns.size }}">No matching records found.</td>
+      </tr>
+    </tbody>
+  </table>
+  <p class="ilw-sr-only" data-rfd-status aria-live="polite"></p>
+</div>

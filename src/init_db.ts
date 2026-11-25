@@ -1,16 +1,22 @@
-import { pool } from "./db.js";
+import { closePool, pool } from "./db.js";
 
+/**
+ * Initialize all database tables without migration tooling. Port of the
+ * `flask --app src/app.py init-db` CLI command (SQLAlchemy `db.create_all()`).
+ */
 const DDL = `
--- PostgreSQL native enum types (values match the human-facing form values)
 DO $$ BEGIN
   CREATE TYPE siteownership AS ENUM ('Owned', 'Leased', 'P3', 'Other', 'Occupied');
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
 DO $$ BEGIN
   CREATE TYPE sitestatus AS ENUM ('Active', 'Inactive', 'Planned');
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
 DO $$ BEGIN
   CREATE TYPE organizationtype AS ENUM ('Internal', 'External');
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
 DO $$ BEGIN
   CREATE TYPE installationstatus AS ENUM ('Planned', 'Installed', 'Maintenance', 'Retired');
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
@@ -45,8 +51,8 @@ CREATE TABLE IF NOT EXISTS sites (
   ownership siteownership NOT NULL,
   status sitestatus NOT NULL,
   description text,
-  longitude numeric(10,6),
-  latitude numeric(10,6),
+  longitude numeric(10, 6),
+  latitude numeric(10, 6),
   room_number varchar(50),
   owner_organization_id integer NOT NULL REFERENCES organizations(id)
 );
@@ -80,18 +86,18 @@ CREATE TABLE IF NOT EXISTS system_contacts (
 );
 `;
 
-async function main() {
+async function main(): Promise<void> {
   const client = await pool.connect();
   try {
     await client.query(DDL);
     console.log("Database tables created.");
   } finally {
     client.release();
-    await pool.end();
+    await closePool();
   }
 }
 
-main().catch((err) => {
+main().catch((err: unknown) => {
   console.error(err);
   process.exit(1);
 });

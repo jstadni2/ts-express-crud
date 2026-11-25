@@ -1,0 +1,35 @@
+{% include 'partials/head' %}
+<section>
+  <h2>Sites</h2>
+  {% if current_role and current_role != 'viewer' %}
+  <p><a href="/sites/new">Create New Site</a></p>
+  {% endif %}
+
+  {% capture rows %}
+    {% for site in sites %}
+    <tr data-rfd-row data-testid="row-{{ forloop.index }}">
+      <td data-testid="row-{{ forloop.index }}-site-name">{{ site.site_name }}</td>
+      <td data-testid="row-{{ forloop.index }}-building-code">{{ site.building_code }}</td>
+      <td data-testid="row-{{ forloop.index }}-ownership">{{ site.ownership }}</td>
+      <td data-testid="row-{{ forloop.index }}-status">{{ site.status }}</td>
+      <td data-testid="row-{{ forloop.index }}-owner-organization">{{ site.owner_org }}</td>
+      <td data-testid="row-{{ forloop.index }}-room-number">{{ site.room_number | default: 'N/A' }}</td>
+      <td data-testid="row-{{ forloop.index }}-action">
+        {% if current_role and current_role == 'viewer' %}
+        <a href="/sites/{{ site.id }}/detail">View</a>
+        {% else %}
+        <a href="/sites/{{ site.id }}/edit">Edit</a>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+    {% if sites.size == 0 %}
+    <tr data-rfd-empty-row>
+      <td colspan="7">No sites recorded yet.</td>
+    </tr>
+    {% endif %}
+  {% endcapture %}
+
+  {% include 'partials/sort_filter_table', table_id: 'sites-table', caption: 'Sites list', columns: columns, rows: rows %}
+</section>
+{% include 'partials/footer' %}

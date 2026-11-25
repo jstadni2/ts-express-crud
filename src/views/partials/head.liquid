@@ -26,29 +26,29 @@
 
 <body style="margin: 0;">
 
-  <% const _flashes = (typeof flashes !== 'undefined' && Array.isArray(flashes)) ? flashes : []; %>
-  <% if (_flashes.length) { %>
+  {% if flashes.size > 0 %}
   <section>
     <h2>Messages</h2>
     <ul>
-      <% _flashes.forEach(function (msg) { %>
-      <li>[<%= msg.category %>] <%= msg.message %></li>
-      <% }); %>
+      {% for flash_message in flashes %}
+      <li>[{{ flash_message.category }}] {{ flash_message.message }}</li>
+      {% endfor %}
     </ul>
   </section>
-  <% } %>
+  {% endif %}
 
   <ilw-page>
     <ilw-header slot="header">
+      <!-- Add header details here -->
       <a slot="site-name" href="/">AV Installation Database</a>
       <div slot="links">
         <ul class="ilw-buttons">
-          <% if (current_user) { %>
-          <li><span><%= current_user.netid %></span></li>
+          {% if current_user %}
+          <li><span>{{ current_user.netid }}</span></li>
           <li><a class="ilw-button" href="/logout">Logout</a></li>
-          <% } else { %>
+          {% else %}
           <li><a class="ilw-button" href="/login">Login</a></li>
-          <% } %>
+          {% endif %}
         </ul>
       </div>
       <ilw-header-menu slot="navigation">

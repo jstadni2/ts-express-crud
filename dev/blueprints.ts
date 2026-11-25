@@ -1,82 +1,117 @@
-import { Router, type Request, type Response } from "express";
-
-import { AUTH_SESSION_KEY, type SessionUser, sessionUserRoles, normalizeRoleName } from "../src/auth.js";
+import express, { type Request, type Response } from "express";
+import { AUTH_SESSION_KEY, type SessionUser } from "../src/auth.js";
 import { flash } from "../src/helpers.js";
-import { getCsrfToken } from "../src/csrf.js";
+import { renderPage } from "../src/views.js";
 
-export const devRoleRouter: Router = Router();
+/**
+ * Developer role-switching blueprint. Port of `dev/blueprints.py`
+ * (`dev_role_bp`): `/dev/role` for interactive switching and
+ * `/dev/mock-session-role` for scripted (e2e) role selection.
+ */
+export const devRoleRouter = express.Router();
 
 function currentSessionUser(req: Request): SessionUser | null {
-  const user = (req.session as any)[AUTH_SESSION_KEY];
-  return user && typeof user === "object" ? (user as SessionUser) : null;
+  const user = req.session[AUTH_SESSION_KEY];
+  return user && typeof user === "object" ? user : null;
 }
 
+function normalizeRole(raw: unknown): string | null {
+  if (raw === null || raw === undefined) return null;
+  const normalized = String(raw).trim().toLowerCase();
+  if (["admin", "maintainer", "viewer"].includes(normalized)) {
+    return normalized;
+  }
+  return null;
+}
+
+/** Port of `_session_roles` from `dev/blueprints.py`. */
 function sessionRoles(user: SessionUser | null): string[] {
-  return sessionUserRoles(user);
-}
+  if (!user || typeof user !== "object") return [];
+  let rawRoles: unknown = user.roles ?? [];
+  if (typeof rawRoles === "string") rawRoles = [rawRoles];
 
-function normalizeRole(raw: string | undefined | null): string | null {
-  const normalized = normalizeRoleName(raw);
-  return normalized && normalized !== "developer" ? normalized : null;
-}
-
-// GET/POST role selection page (requires the developer flag)
-devRoleRouter.get("/dev/role", (req: Request, res: Response) => {
-  const user = currentSessionUser(req);
-  res.locals.csrf_token = getCsrfToken(req);
-  if (!user || !sessionRoles(user).includes("developer")) {
-    flash(req, "Developer mode role switching is not enabled for your account.", "error");
-    res.status(403);
-    return res.render("error");
+  const roles: string[] = [];
+  const seen = new Set<string>();
+  for (const raw of Array.isArray(rawRoles) ? rawRoles : []) {
+    const normalized = normalizeRole(raw);
+    if (normalized && !seen.has(normalized)) {
+      seen.add(normalized);
+      roles.push(normalized);
+    }
   }
+
+  const developer =
+    Array.isArray(rawRoles) && rawRoles.map((role) => String(role)).includes("developer");
+  if (developer && !roles.includes("developer")) {
+    roles.push("developer");
+  }
+  return roles;
+}
+
+function titleCase(role: string): string {
+  return role.charAt(0).toUpperCase() + role.slice(1);
+}
+
+devRoleRouter.get("/dev/role", handleDevRole);
+devRoleRouter.post("/dev/role", handleDevRole);
+
+async function handleDevRole(req: Request, res: Response): Promise<void> {
+  const user = currentSessionUser(req);
+  if (!user || !sessionRoles(user).includes("developer")) {
+    flash(req, "error", "Developer mode role switching is not enabled for your account.");
+    res.status(403);
+    await renderPage(req, res, "error");
+    return;
+  }
+
+  if (req.method === "POST") {
+    const selected = normalizeRole(req.body?.role);
+    if (selected === null) {
+      flash(req, "error", "Invalid role selected.");
+      res.redirect("/dev/role");
+      return;
+    }
+
+    const roles = sessionRoles(user).filter(
+      (role) => !["admin", "maintainer", "viewer"].includes(role),
+    );
+    roles.push(selected);
+    user.roles = roles;
+    user.role = selected;
+    req.session[AUTH_SESSION_KEY] = user;
+    flash(req, "success", `Active role set to ${titleCase(selected)}.`);
+    res.redirect("/dev/role");
+    return;
+  }
+
   const activeRole =
-    user.role ||
-    ["admin", "maintainer", "viewer"].find((r) => sessionRoles(user).includes(r)) ||
+    (typeof user.role === "string" ? normalizeRole(user.role) : null) ??
+    ["admin", "maintainer", "viewer"].find((role) => sessionRoles(user).includes(role)) ??
     null;
-  res.render("dev_role", {
-    roleOptions: ["Admin", "Maintainer", "Viewer"],
-    active_role: activeRole ? activeRole[0].toUpperCase() + activeRole.slice(1) : null,
+
+  await renderPage(req, res, "dev_role", {
+    role_options: ["Admin", "Maintainer", "Viewer"],
+    active_role: activeRole ? titleCase(activeRole) : null,
   });
-});
+}
 
-devRoleRouter.post("/dev/role", (req: Request, res: Response) => {
-  const user = currentSessionUser(req);
-  if (!user || !sessionRoles(user).includes("developer")) {
-    flash(req, "Developer mode role switching is not enabled for your account.", "error");
-    res.status(403);
-    return res.render("error");
-  }
-  const selected = normalizeRole(req.body.role);
-  if (selected === null) {
-    flash(req, "Invalid role selected.", "error");
-    return res.redirect("/dev/role");
-  }
-  const baseRoles = sessionRoles(user).filter(
-    (r) => !["admin", "maintainer", "viewer"].includes(r),
-  );
-  baseRoles.push(selected);
-  user.roles = baseRoles;
-  user.role = selected;
-  (req.session as any)[AUTH_SESSION_KEY] = user;
-  flash(req, `Active role set to ${selected[0].toUpperCase() + selected.slice(1)}.`, "success");
-  return res.redirect("/dev/role");
-});
+devRoleRouter.get("/dev/mock-session-role", handleMockSessionRole);
+devRoleRouter.post("/dev/mock-session-role", handleMockSessionRole);
 
-// Dev-only mock session role endpoint
-devRoleRouter.all("/dev/mock-session-role", (req: Request, res: Response) => {
-  const raw = (typeof req.query.role === "string" ? req.query.role : undefined) ||
-    (typeof req.body?.role === "string" ? req.body.role : undefined);
-  const selected = normalizeRole(raw);
+function handleMockSessionRole(req: Request, res: Response): void {
+  const queryRole = Array.isArray(req.query.role) ? req.query.role[0] : req.query.role;
+  const selected = normalizeRole(queryRole ?? req.body?.role);
   if (selected === null) {
-    flash(req, "Invalid role selected.", "error");
-    return res.redirect("/");
+    flash(req, "error", "Invalid role selected.");
+    res.redirect("/");
+    return;
   }
-  const sessionUser: SessionUser = {
+
+  req.session[AUTH_SESSION_KEY] = {
     netid: "avdb-e2e",
     roles: ["developer", selected],
     role: selected,
   };
-  (req.session as any)[AUTH_SESSION_KEY] = sessionUser;
-  flash(req, `Active role set to ${selected[0].toUpperCase() + selected.slice(1)}.`, "success");
-  return res.redirect("/");
-});
+  flash(req, "success", `Active role set to ${titleCase(selected)}.`);
+  res.redirect("/");
+}

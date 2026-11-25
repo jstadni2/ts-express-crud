@@ -1,0 +1,34 @@
+{% include 'partials/head' %}
+<section>
+  <h2>Contacts</h2>
+  {% if current_role and current_role != 'viewer' %}
+  <p><a href="/contacts/new">Create New Contact</a></p>
+  {% endif %}
+
+  {% capture rows %}
+    {% for contact in contacts %}
+    <tr data-rfd-row data-testid="row-{{ forloop.index }}">
+      <td data-sort-value="{{ contact.full_name }}" data-testid="row-{{ forloop.index }}-name">{{ contact.full_name }}</td>
+      <td data-testid="row-{{ forloop.index }}-title">{{ contact.title | default: '' }}</td>
+      <td data-testid="row-{{ forloop.index }}-email">{{ contact.email | default: '' }}</td>
+      <td data-testid="row-{{ forloop.index }}-phone">{{ contact.phone | default: '' }}</td>
+      <td data-testid="row-{{ forloop.index }}-organization">{{ contact.org_name }}</td>
+      <td data-testid="row-{{ forloop.index }}-action">
+        {% if current_role and current_role == 'viewer' %}
+        <a href="/contacts/{{ contact.id }}/detail">View</a>
+        {% else %}
+        <a href="/contacts/{{ contact.id }}/edit">Edit</a>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+    {% if contacts.size == 0 %}
+    <tr data-rfd-empty-row>
+      <td colspan="6">No contacts recorded yet.</td>
+    </tr>
+    {% endif %}
+  {% endcapture %}
+
+  {% include 'partials/sort_filter_table', table_id: 'contacts-table', caption: 'Contacts list', columns: columns, rows: rows %}
+</section>
+{% include 'partials/footer' %}

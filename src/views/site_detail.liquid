@@ -1,0 +1,63 @@
+{% include 'partials/head' %}
+<section>
+  <h2>Site Detail</h2>
+
+  <dl>
+    <dt>Site Name</dt>
+    <dd>{{ site.site_name }}</dd>
+
+    <dt>Address Line 1</dt>
+    <dd>{{ site.address_line1 }}</dd>
+
+    <dt>Address Line 2</dt>
+    <dd>{{ site.address_line2 | default: '—' }}</dd>
+
+    <dt>City</dt>
+    <dd>{{ site.city }}</dd>
+
+    <dt>State</dt>
+    <dd>{{ site.state }}</dd>
+
+    <dt>Postal Code</dt>
+    <dd>{{ site.postal_code }}</dd>
+
+    <dt>Country</dt>
+    <dd>{{ site.country }}</dd>
+
+    <dt>Building Code</dt>
+    <dd>{{ site.building_code }}</dd>
+
+    <dt>Ownership</dt>
+    <dd>{{ site.ownership }}</dd>
+
+    <dt>Status</dt>
+    <dd>{{ site.status }}</dd>
+
+    <dt>Description</dt>
+    <dd>{{ site.description | default: '—' }}</dd>
+
+    <dt>Longitude</dt>
+    <dd>{{ site.longitude | default: '—' }}</dd>
+
+    <dt>Latitude</dt>
+    <dd>{{ site.latitude | default: '—' }}</dd>
+
+    <dt>Room Number(s)</dt>
+    <dd>{{ site.room_number | default: '—' }}</dd>
+
+    <dt>Owner Organization</dt>
+    <dd>{{ site.owner_org }}</dd>
+
+    <dt>Site Contacts</dt>
+    <dd>
+      {% if site.contacts_text %}
+      {{ site.contacts_text }}
+      {% else %}
+      —
+      {% endif %}
+    </dd>
+  </dl>
+
+  <p><a href="/sites">Back to Sites</a></p>
+</section>
+{% include 'partials/footer' %}

@@ -1,0 +1,27 @@
+{% include 'partials/head' %}
+<section>
+  <h2>Contact Detail</h2>
+
+  <dl>
+    <dt>First Name</dt>
+    <dd>{{ contact.first_name }}</dd>
+
+    <dt>Last Name</dt>
+    <dd>{{ contact.last_name }}</dd>
+
+    <dt>Title</dt>
+    <dd>{{ contact.title | default: '—' }}</dd>
+
+    <dt>Email</dt>
+    <dd>{{ contact.email | default: '—' }}</dd>
+
+    <dt>Phone</dt>
+    <dd>{{ contact.phone | default: '—' }}</dd>
+
+    <dt>Organization</dt>
+    <dd>{{ contact.org_name }}</dd>
+  </dl>
+
+  <p><a href="/contacts">Back to Contacts</a></p>
+</section>
+{% include 'partials/footer' %}

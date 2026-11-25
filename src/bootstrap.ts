@@ -1,16 +1,31 @@
+import fs from "node:fs";
+import https from "node:https";
 import { createApp } from "./app_factory.js";
+import { closePool } from "./db.js";
+import { logger } from "./logger.js";
 
-export const app = createApp();
+// Production entrypoint: serves HTTPS on :443 with the mounted certificates,
+// mirroring the Gunicorn invocation in the Flask Dockerfile.
+const port = Number(process.env.PORT ?? 443);
 
-// Start the server only when run directly (e.g. `docker compose` CMD).
-const isMain =
-  typeof process !== "undefined" &&
-  process.argv.length > 1 &&
-  process.argv[1].endsWith("bootstrap.js");
+const server = https.createServer(
+  {
+    cert: fs.readFileSync("/certs/server.crt"),
+    key: fs.readFileSync("/certs/server.key"),
+  },
+  createApp(),
+);
 
-if (isMain) {
-  const port = Number(process.env.PORT || 443);
-  app.listen(port, () => {
-    console.log(`AVDB production server listening on port ${port}`);
-  });
+server.listen(port, () => {
+  logger.info(`AVDB production server listening on https://0.0.0.0:${port}`);
+});
+
+async function shutdown(signal: string): Promise<void> {
+  logger.info(`${signal} received; shutting down`);
+  server.close();
+  await closePool();
+  process.exit(0);
 }
+
+process.on("SIGTERM", () => void shutdown("SIGTERM"));
+process.on("SIGINT", () => void shutdown("SIGINT"));

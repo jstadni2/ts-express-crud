@@ -1,0 +1,32 @@
+{% include 'partials/head' %}
+<section>
+  <h2>Organizations</h2>
+  {% if current_role and current_role != 'viewer' %}
+  <p><a href="/organizations/new">Create New Organization</a></p>
+  {% endif %}
+
+  {% capture rows %}
+    {% for organization in organizations %}
+    <tr data-rfd-row data-testid="row-{{ forloop.index }}">
+      <td data-testid="row-{{ forloop.index }}-name">{{ organization.name }}</td>
+      <td data-testid="row-{{ forloop.index }}-type">{{ organization.org_type }}</td>
+      <td data-testid="row-{{ forloop.index }}-description">{{ organization.description | default: '' }}</td>
+      <td data-testid="row-{{ forloop.index }}-action">
+        {% if current_role and current_role == 'viewer' %}
+        <a href="/organizations/{{ organization.id }}/detail">View</a>
+        {% else %}
+        <a href="/organizations/{{ organization.id }}/edit">Edit</a>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+    {% if organizations.size == 0 %}
+    <tr data-rfd-empty-row>
+      <td colspan="4">No organizations recorded yet.</td>
+    </tr>
+    {% endif %}
+  {% endcapture %}
+
+  {% include 'partials/sort_filter_table', table_id: 'organizations-table', caption: 'Organizations list', columns: columns, rows: rows %}
+</section>
+{% include 'partials/footer' %}

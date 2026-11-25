@@ -1,20 +1,18 @@
-<%- include('partials/header') %>
-
+{% include 'partials/head' %}
 <section>
   <h2>Organization Detail</h2>
 
   <dl>
     <dt>Name</dt>
-    <dd><%= organization.name %></dd>
+    <dd>{{ organization.name }}</dd>
 
     <dt>Organization Type</dt>
-    <dd><%= organization.orgType %></dd>
+    <dd>{{ organization.org_type }}</dd>
 
     <dt>Description</dt>
-    <dd><%= organization.description || '—' %></dd>
+    <dd>{{ organization.description | default: '—' }}</dd>
   </dl>
 
   <p><a href="/organizations">Back to Organizations</a></p>
 </section>
-
-<%- include('partials/footer') %>
+{% include 'partials/footer' %}

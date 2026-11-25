@@ -1,24 +1,19 @@
-import { defineConfig, devices } from "@playwright/test";
+import { defineConfig } from "@playwright/test";
 
-const E2E_PORT = Number(process.env.E2E_PORT || 5010);
-const E2E_BASE_URL = process.env.E2E_BASE_URL || `http://127.0.0.1:${E2E_PORT}`;
+const port = Number(process.env.E2E_PORT ?? 5010);
+const baseURL = process.env.E2E_BASE_URL ?? `http://127.0.0.1:${port}`;
 
 export default defineConfig({
-  testDir: "./tests/ts-e2e",
+  testDir: "./tests/e2e",
+  // Only the TypeScript specs; the ported Pytest-Playwright suite (.py) is
+  // run separately via `make e2e-test`.
+  testMatch: /.*\.spec\.ts/,
   fullyParallel: false,
   workers: 1,
-  timeout: 60000,
   retries: 0,
   reporter: [["list"]],
   use: {
-    baseURL: E2E_BASE_URL,
-    trace: "on-first-retry",
+    baseURL,
     headless: true,
   },
-  projects: [
-    {
-      name: "chromium",
-      use: { ...devices["Desktop Chrome"] },
-    },
-  ],
 });

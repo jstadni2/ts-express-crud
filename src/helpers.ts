@@ -1,73 +1,144 @@
-import type { Request, Response } from "express";
+import type { Request } from "express";
+import { logger } from "./logger.js";
 
-const FLASH_KEY = "_flash_messages";
+export const FLASH_SESSION_KEY = "_flashes";
 
-export type FlashMessage = { category: string; message: string };
-
-/** Flash a user-facing message into the session queue. */
-export function flash(req: Request, message: string, category = "message"): void {
-  const session = req.session as any;
-  if (!Array.isArray(session[FLASH_KEY])) session[FLASH_KEY] = [];
-  session[FLASH_KEY].push({ category, message });
+export interface FlashMessage {
+  category: string;
+  message: string;
 }
 
-/** Pop and return the pending flash messages for the current request. */
-export function takeFlashes(req: Request): FlashMessage[] {
-  const session = req.session as any;
-  const messages = Array.isArray(session[FLASH_KEY]) ? (session[FLASH_KEY] as FlashMessage[]) : [];
-  delete session[FLASH_KEY];
-  return messages;
+/** Flash a user-facing message stored in the session until the next render. */
+export function flash(req: Request, category: string, message: string): void {
+  if (!req.session) return;
+  const list = (req.session[FLASH_SESSION_KEY] ??= []) as FlashMessage[];
+  list.push({ category, message });
 }
 
 /**
- * Mirror the Flask `_flash_error`: flash ValueError-style messages directly,
- * and for all other errors log and flash a generic message without exposing
- * raw exception details.
+ * Remove and return pending flash messages. Mirrors Jinja's
+ * `get_flashed_messages()`: messages flashed during the current request (e.g.
+ * the 403 handler) are visible to the page rendered in that same response.
  */
-export function flashError(req: Request, logger: { error: (msg: string, err: unknown) => void }, action: string, exc: unknown, res?: Response): void {
-  if (exc instanceof Error && exc.name === "ValidationError") {
-    flash(req, `${action}: ${exc.message}`, "error");
+export function takeFlashes(req: Request): FlashMessage[] {
+  if (!req.session) return [];
+  const list = (req.session[FLASH_SESSION_KEY] ?? []) as FlashMessage[];
+  delete req.session[FLASH_SESSION_KEY];
+  return list;
+}
+
+/**
+ * Intentional, user-facing validation error. Mirrors Python's `ValueError`:
+ * the message is safe to show to the user via a flash message.
+ */
+export class ValidationError extends Error {}
+
+/** HTTP error mapped to a status code, mirroring Werkzeug's `HTTPException`. */
+export class HttpError extends Error {
+  constructor(
+    readonly status: number,
+    message?: string,
+  ) {
+    super(message ?? `HTTP ${status}`);
+  }
+}
+
+/**
+ * Flash a user-facing error message; log unexpected exceptions server-side.
+ * Port of `_flash_error(action, exc)` from `src/app.py`.
+ */
+export function flashError(req: Request, action: string, exc: unknown): void {
+  if (exc instanceof ValidationError) {
+    flash(req, "error", `${action}: ${exc.message}`);
   } else {
-    logger.error(`${action}`, exc);
-    flash(req, "An unexpected error occurred. Please try again or contact support.", "error");
+    logger.exception(action, exc);
+    flash(req, "error", "An unexpected error occurred. Please try again or contact support.");
   }
 }
 
-/** A typed error whose message is safe to show to the user. */
-export class ValidationError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "ValidationError";
+// ---------------------------------------------------------------------------
+// Form field parsing (port of `request.form[...]` / `request.form.get(...)`)
+// ---------------------------------------------------------------------------
+
+function parseIntStrict(field: string, value: string): number {
+  if (!/^[+-]?\d+$/.test(value.trim())) {
+    throw new ValidationError(`invalid literal for int() with base 10: '${value}'`);
   }
+  return Number.parseInt(value.trim(), 10);
 }
 
-/** Parse a date string (YYYY-MM-DD) or return null when empty/invalid. */
-export function parseDate(value: string | undefined): string | null {
-  if (!value) return null;
+/** Required form field; missing keys are a 400 like Flask's `request.form[key]`. */
+export function formString(req: Request, key: string): string {
+  const value = req.body?.[key];
+  if (typeof value !== "string") {
+    throw new HttpError(400, `Missing form field: ${key}`);
+  }
   return value;
 }
 
-/** Parse a decimal string or throw a ValidationError. */
-export function parseDecimal(fieldName: string, value: string): string {
-  if (value === undefined || value === null || value.trim() === "") {
-    throw new ValidationError(`${fieldName} must be a valid number.`);
-  }
-  const parsed = Number(value);
-  if (Number.isNaN(parsed)) {
-    throw new ValidationError(`${fieldName} must be a valid number.`);
-  }
-  return String(parsed);
+/** Optional form field with a default, like `request.form.get(key, default)`. */
+export function formStringOr(req: Request, key: string, fallback = ""): string {
+  const value = req.body?.[key];
+  return typeof value === "string" ? value : fallback;
 }
 
-/** Resolve a value against the allowed set of an enum, or throw. */
-export function getEnumByValue<T extends readonly string[]>(
-  enumValues: T,
-  value: string,
-  enumName: string,
-): (typeof enumValues)[number] {
-  const found = enumValues.find((v) => v === value);
-  if (found === undefined) {
-    throw new ValidationError(`Invalid value for ${enumName}: ${value}`);
+/** Optional integer form field: empty/missing becomes null, invalid raises. */
+export function formIntOrNull(req: Request, key: string): number | null {
+  const value = req.body?.[key];
+  if (value === undefined || value === "") return null;
+  return parseIntStrict(key, String(value));
+}
+
+/** Required integer form field; a missing key is a 400 like Flask. */
+export function formRequiredInt(req: Request, key: string): number {
+  const value = req.body?.[key];
+  if (value === undefined || value === "") {
+    throw new HttpError(400, `Missing form field: ${key}`);
   }
-  return found;
+  return parseIntStrict(key, String(value));
+}
+
+/** All submitted values for a repeated field, like `request.form.getlist(key)`. */
+export function formIntList(req: Request, key: string): number[] {
+  const raw = req.body?.[key];
+  if (raw === undefined) return [];
+  const values = Array.isArray(raw) ? raw : [raw];
+  return values.map((value) => parseIntStrict(key, String(value)));
+}
+
+// ---------------------------------------------------------------------------
+// Value parsing (port of `_parse_date`, `_parse_decimal`, `_get_enum_by_value`)
+// ---------------------------------------------------------------------------
+
+/** Parse an ISO "YYYY-MM-DD" date; empty becomes null, invalid raises. */
+export function parseDateField(value: string): string | null {
+  if (!value) return null;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value) || Number.isNaN(Date.parse(`${value}T00:00:00Z`))) {
+    throw new ValidationError(`time data '${value}' does not match format '%Y-%m-%d'`);
+  }
+  return value;
+}
+
+/** Parse a decimal string (kept as-is for Postgres numeric columns). */
+export function parseDecimalField(fieldName: string, value: string): string {
+  const trimmed = value.trim();
+  if (!/^[+-]?(\d+(\.\d*)?|\.\d+)$/.test(trimmed)) {
+    throw new ValidationError(`${fieldName} must be a valid number.`);
+  }
+  return trimmed;
+}
+
+/**
+ * Look up an enum value by its human-facing value. Mirrors
+ * `_get_enum_by_value`: unknown values raise a user-facing ValueError.
+ */
+export function getEnumByValue<T extends Record<string, string>>(
+  enumObject: T,
+  enumName: string,
+  value: string,
+): string {
+  for (const enumValue of Object.values(enumObject)) {
+    if (enumValue === value) return enumValue;
+  }
+  throw new ValidationError(`Invalid value for ${enumName}: ${value}`);
 }

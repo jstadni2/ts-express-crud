@@ -1,21 +1,19 @@
-<%- include('partials/header') %>
-
+{% include 'partials/head' %}
 <section>
   <h2>Select Developer Role</h2>
   <p>Select an active role to evaluate the application's authorization scheme. This page is available when the development role policy and dev role blueprint are enabled, and your account has the developer flag enabled.</p>
 
-  <p>Current active role: <strong><%= active_role || 'None' %></strong></p>
+  <p>Current active role: <strong>{{ active_role | default: 'None' }}</strong></p>
 
   <form method="post" action="/dev/role">
-    <input type="hidden" name="csrf_token" value="<%= csrf_token %>">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
     <label for="role">Act as role</label>
     <select id="role" name="role" required>
-      <% roleOptions.forEach(function (option) { %>
-      <option value="<%= option %>" <% if (active_role === option) { %>selected<% } %>><%= option %></option>
-      <% }); %>
+      {% for option in role_options %}
+      <option value="{{ option }}" {% if active_role == option %}selected{% endif %}>{{ option }}</option>
+      {% endfor %}
     </select>
     <button type="submit">Apply Role</button>
   </form>
 </section>
-
-<%- include('partials/footer') %>
+{% include 'partials/footer' %}

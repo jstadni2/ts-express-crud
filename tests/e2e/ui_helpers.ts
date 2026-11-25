@@ -1,15 +1,21 @@
-import { expect, type Page, type Locator, type Response } from "@playwright/test";
+import { randomUUID } from "node:crypto";
+import { expect, type APIResponse, type Locator, type Page } from "@playwright/test";
 
-export function uniqueName(prefix: string): string {
-  return `${prefix}-${Math.random().toString(16).slice(2, 10)}`;
+/** Default e2e base URL, mirroring tests/e2e/conftest.py. */
+export function baseUrl(): string {
+  return process.env.E2E_BASE_URL ?? "http://127.0.0.1:5010";
 }
 
-export function gotoPath(page: Page, baseUrl: string, path: string): Promise<Response | null> {
-  return page.goto(`${baseUrl}${path}`);
+export function uniqueName(prefix: string): string {
+  return `${prefix}-${randomUUID().replaceAll("-", "").slice(0, 8)}`;
+}
+
+export function gotoPath(page: Page, base: string, path: string): Promise<unknown> {
+  return page.goto(`${base}${path}`);
 }
 
 export function acceptNextDialog(page: Page): void {
-  page.once("dialog", (dialog) => dialog.accept());
+  void page.once("dialog", (dialog) => void dialog.accept());
 }
 
 export function flashLocator(page: Page): Locator {
@@ -25,8 +31,7 @@ export function table(page: Page, tableId: string): Locator {
 }
 
 export function dataRows(page: Page, tableId: string): Locator {
-  const rowRegex = new RegExp("^row-\\d+$");
-  return table(page, tableId).getByTestId(rowRegex);
+  return table(page, tableId).getByTestId(/^row-\d+$/);
 }
 
 export function rowByText(page: Page, tableId: string, rowText: string): Locator {
@@ -35,10 +40,10 @@ export function rowByText(page: Page, tableId: string, rowText: string): Locator
 
 export async function visibleRows(page: Page, tableId: string): Promise<Locator[]> {
   const rows = dataRows(page, tableId);
-  const count = await rows.count();
   const result: Locator[] = [];
-  for (let i = 0; i < count; i++) {
-    const row = rows.nth(i);
+  const count = await rows.count();
+  for (let idx = 0; idx < count; idx += 1) {
+    const row = rows.nth(idx);
     if (await row.isVisible()) {
       result.push(row);
     }
@@ -60,11 +65,11 @@ export async function openViewForRow(page: Page, tableId: string, rowText: strin
 
 export async function createOrganization(
   page: Page,
-  baseUrl: string,
+  base: string,
   name: string,
   orgType = "Internal",
 ): Promise<void> {
-  await gotoPath(page, baseUrl, "/organizations/new");
+  await gotoPath(page, base, "/organizations/new");
   await page.fill("#name", name);
   await page.selectOption("#org_type", orgType);
   await page.fill("#description", `Description for ${name}`);
@@ -75,13 +80,13 @@ export async function createOrganization(
 
 export async function createContact(
   page: Page,
-  baseUrl: string,
+  base: string,
   firstName: string,
   lastName: string,
   organizationName: string,
   email: string,
 ): Promise<void> {
-  await gotoPath(page, baseUrl, "/contacts/new");
+  await gotoPath(page, base, "/contacts/new");
   await page.fill("#first_name", firstName);
   await page.fill("#last_name", lastName);
   await page.fill("#title", "AV Test");
@@ -95,13 +100,13 @@ export async function createContact(
 
 export async function createSite(
   page: Page,
-  baseUrl: string,
+  base: string,
   siteName: string,
   buildingCode: string,
   ownerOrgName: string,
   contactLabels?: string[],
 ): Promise<void> {
-  await gotoPath(page, baseUrl, "/sites/new");
+  await gotoPath(page, base, "/sites/new");
   await page.fill("#site_name", siteName);
   await page.fill("#address_line1", "100 Test Ave");
   await page.fill("#address_line2", "");
@@ -116,63 +121,67 @@ export async function createSite(
   await page.fill("#room_number", "101");
   await page.selectOption("#owner_organization_id", { label: ownerOrgName });
   if (contactLabels) {
-    await page.selectOption("#contact_ids", contactLabels.map((label) => ({ label })));
+    await page.selectOption(
+      "#contact_ids",
+      contactLabels.map((label) => ({ label })),
+    );
   }
   await page.getByRole("button", { name: "Save" }).click();
   await expectFlashContains(page, "Site created.");
   await expect(table(page, "sites-table")).toContainText(siteName);
 }
 
+export interface CreateSystemOptions {
+  name: string;
+  systemType?: string;
+  description?: string;
+  installationDate?: string;
+  warrantyExpiryDate?: string;
+  installerOrg?: string;
+  equipmentCondition?: string;
+  status?: string;
+  siteName: string;
+  siteBuildingCode: string;
+  responsibleOrg?: string;
+  contactLabels?: string[];
+}
+
 export async function createSystem(
   page: Page,
-  baseUrl: string,
-  options: {
-    name: string;
-    systemType?: string;
-    description?: string;
-    installationDate?: string;
-    warrantyExpiryDate?: string;
-    installerOrg?: string;
-    equipmentCondition?: string;
-    status?: string;
-    siteName: string;
-    siteBuildingCode: string;
-    responsibleOrg?: string;
-    contactLabels?: string[];
-  },
+  base: string,
+  options: CreateSystemOptions,
 ): Promise<void> {
-  const {
-    name,
-    systemType = "Audio-Visual",
-    description,
-    installationDate,
-    warrantyExpiryDate,
-    installerOrg,
-    equipmentCondition,
-    status = "Planned",
-    siteName,
-    siteBuildingCode,
-    responsibleOrg,
-    contactLabels,
-  } = options;
-  await gotoPath(page, baseUrl, "/systems/new");
-  await page.fill("#name", name);
-  await page.fill("#system_type", systemType);
-  await page.fill("#description", description || `System desc ${name}`);
-  if (installationDate) await page.fill("#installation_date", installationDate);
-  if (warrantyExpiryDate) await page.fill("#warranty_expiry_date", warrantyExpiryDate);
-  if (installerOrg) await page.selectOption("#installer_organization_id", { label: installerOrg });
-  if (equipmentCondition) await page.fill("#equipment_condition", equipmentCondition);
-  await page.selectOption("#status", status);
-  const siteLabel = `${siteName} (${siteBuildingCode})`;
+  await gotoPath(page, base, "/systems/new");
+  await page.fill("#name", options.name);
+  await page.fill("#system_type", options.systemType ?? "Audio-Visual");
+  await page.fill("#description", options.description || `System desc ${options.name}`);
+  if (options.installationDate) {
+    await page.fill("#installation_date", options.installationDate);
+  }
+  if (options.warrantyExpiryDate) {
+    await page.fill("#warranty_expiry_date", options.warrantyExpiryDate);
+  }
+  if (options.installerOrg) {
+    await page.selectOption("#installer_organization_id", { label: options.installerOrg });
+  }
+  if (options.equipmentCondition) {
+    await page.fill("#equipment_condition", options.equipmentCondition);
+  }
+  await page.selectOption("#status", options.status ?? "Planned");
+  const siteLabel = `${options.siteName} (${options.siteBuildingCode})`;
   await page.selectOption("#site_id", { label: siteLabel });
-  if (responsibleOrg) await page.selectOption("#responsible_organization_id", { label: responsibleOrg });
-  if (contactLabels) {
-    await page.selectOption("#contact_ids", contactLabels.map((label) => ({ label })));
+  if (options.responsibleOrg) {
+    await page.selectOption("#responsible_organization_id", { label: options.responsibleOrg });
+  }
+  if (options.contactLabels) {
+    await page.selectOption(
+      "#contact_ids",
+      options.contactLabels.map((label) => ({ label })),
+    );
   }
   await page.getByRole("button", { name: "Save" }).click();
   await expectFlashContains(page, "System created.");
-  await expect(table(page, "systems-table")).toContainText(name);
+  await expect(table(page, "systems-table")).toContainText(options.name);
 }
 
 export async function clickSort(
@@ -182,9 +191,13 @@ export async function clickSort(
   times = 1,
 ): Promise<void> {
   const button = table(page, tableId).getByTestId(`sort-button-${columnKey}`);
-  for (let i = 0; i < times; i++) {
+  for (let click = 0; click < times; click += 1) {
     await button.click();
   }
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 export async function visibleColumnValues(
@@ -192,12 +205,23 @@ export async function visibleColumnValues(
   tableId: string,
   columnTestIdKey: string,
 ): Promise<string[]> {
-  const cellPattern = new RegExp(`^row-\\d+-${columnTestIdKey}$`);
+  const cellPattern = new RegExp(`^row-\\d+-${escapeRegExp(columnTestIdKey)}$`);
   const values: string[] = [];
   for (const row of await visibleRows(page, tableId)) {
     values.push((await row.getByTestId(cellPattern).first().innerText()).trim());
   }
   return values;
+}
+
+/** Code-point sort by lowercased value, mirroring Python's `sorted(key=str.lower)`. */
+export function sortedLower(values: string[]): string[] {
+  return [...values].sort((a, b) => {
+    const la = a.toLowerCase();
+    const lb = b.toLowerCase();
+    if (la < lb) return -1;
+    if (la > lb) return 1;
+    return 0;
+  });
 }
 
 export async function filterTable(
@@ -208,33 +232,39 @@ export async function filterTable(
 ): Promise<void> {
   const toggle = table(page, tableId).getByTestId(`filter-toggle-${columnKey}`);
   await toggle.click();
-  const input = table(page, tableId).getByTestId(`filter-row-${columnKey}`);
-  await input.fill(value);
+  const inputLocator = table(page, tableId).getByTestId(`filter-row-${columnKey}`);
+  await inputLocator.fill(value);
 }
 
 export async function expectRequiredMessage(page: Page, inputSelector: string): Promise<void> {
-  const message = await page.locator(inputSelector).evaluate(
-    (el: HTMLInputElement) => el.validationMessage,
-  );
-  expect(message.trim()).not.toBe("");
+  const message = await page.locator(inputSelector).evaluate("el => el.validationMessage");
+  expect(typeof message).toBe("string");
+  expect((message as string).trim()).not.toBe("");
 }
 
-export async function setActiveRole(page: Page, baseUrl: string, roleName: string): Promise<void> {
+export async function setActiveRole(
+  page: Page,
+  base: string,
+  roleName: string,
+): Promise<void> {
   const normalized = roleName.trim().toLowerCase();
-  const goTo = `${baseUrl}/dev/mock-session-role?role=${normalized}`;
-  const response = await page.goto(goTo);
+  const response = await page.goto(`${base}/dev/mock-session-role?role=${normalized}`);
   expect(response).not.toBeNull();
-  expect(response!.status(), "mock session role should return 200").toBe(200);
+  expect(response!.status()).toBe(200);
   await expectFlashContains(page, `Active role set to ${titleCase(roleName)}.`);
-  await page.goto(`${baseUrl}/`);
+  await page.goto(`${base}/`);
+}
+
+function titleCase(value: string): string {
+  return value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
 }
 
 export async function expectForbiddenGet(
   page: Page,
-  baseUrl: string,
+  base: string,
   path: string,
 ): Promise<void> {
-  const response = await page.goto(`${baseUrl}${path}`);
+  const response = await page.goto(`${base}${path}`);
   expect(response).not.toBeNull();
   expect(response!.status()).toBe(403);
   await expect(page.locator("main")).toContainText(
@@ -245,18 +275,25 @@ export async function expectForbiddenGet(
 
 export async function expectForbiddenPost(
   page: Page,
-  baseUrl: string,
+  base: string,
   path: string,
 ): Promise<void> {
-  await page.goto(`${baseUrl}/dev/role`);
-  const csrfToken = await page
-    .locator('input[name="csrf_token"]')
-    .getAttribute("value");
+  // Go to the dev role page to get a CSRF token in the browser session context.
+  // The session carries the developer role (set via mock-session-role), which
+  // allows this GET to render dev_role.html containing the CSRF token input.
+  await page.goto(`${base}/dev/role`);
+  const csrfToken = await page.locator('input[name="csrf_token"]').getAttribute("value");
   expect(csrfToken, "CSRF token not found").toBeTruthy();
+  expect(csrfToken!).not.toBe("");
 
-  const response = await page.request.post(`${baseUrl}${path}`, {
+  // Make the POST request with the CSRF token
+  const response = await page.request.post(`${base}${path}`, {
     form: { csrf_token: csrfToken! },
   });
+  await assertForbiddenResponse(response);
+}
+
+async function assertForbiddenResponse(response: APIResponse): Promise<void> {
   expect(response.status()).toBe(403);
   const body = await response.text();
   expect(body).toContain("Something went wrong");
@@ -264,8 +301,4 @@ export async function expectForbiddenPost(
     "An unexpected error occurred. Please try again or contact support if the problem persists.",
   );
   expect(body).toContain("You do not have permission to perform that action.");
-}
-
-function titleCase(value: string): string {
-  return value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
 }
